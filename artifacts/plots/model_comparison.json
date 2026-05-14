@@ -1,0 +1,38 @@
+[
+  {
+    "name": "CNN",
+    "accuracy": 0.8958,
+    "f1_weighted": 0.8964,
+    "roc_auc": 0.9894
+  },
+  {
+    "name": "SVM",
+    "accuracy": 0.8958,
+    "f1_weighted": 0.8949,
+    "roc_auc": 0.9926
+  },
+  {
+    "name": "Bi-LSTM",
+    "accuracy": 0.8576,
+    "f1_weighted": 0.8579,
+    "roc_auc": 0.9761
+  },
+  {
+    "name": "XGBoost",
+    "accuracy": 0.8576,
+    "f1_weighted": 0.8573,
+    "roc_auc": 0.9905
+  },
+  {
+    "name": "Random Forest",
+    "accuracy": 0.849,
+    "f1_weighted": 0.848,
+    "roc_auc": 0.9914
+  },
+  {
+    "name": "CNN-LSTM",
+    "accuracy": 0.8142,
+    "f1_weighted": 0.8111,
+    "roc_auc": 0.9624
+  }
+]

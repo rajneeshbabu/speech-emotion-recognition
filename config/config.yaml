@@ -1,0 +1,105 @@
+# ══════════════════════════════════════════════
+#  Speech Emotion Recognition — Config
+# ══════════════════════════════════════════════
+
+# ── Dataset ──────────────────────────────────
+dataset:
+  kaggle_dataset: "uwrfkaggler/ravdess-emotional-speech-audio"
+  dataset_name: "RAVDESS"
+  raw_dir: "artifacts/raw"
+  processed_dir: "artifacts/processed"
+
+# ── Emotions ─────────────────────────────────
+emotions:
+  "01": "neutral"
+  "02": "calm"
+  "03": "happy"
+  "04": "sad"
+  "05": "angry"
+  "06": "fearful"
+  "07": "disgust"
+  "08": "surprised"
+
+# ── Audio Preprocessing ───────────────────────
+audio:
+  sample_rate: 22050
+  duration: 3          # seconds to trim/pad each file
+  n_mfcc: 40
+  n_mels: 128
+  n_chroma: 12
+  hop_length: 512
+  n_fft: 2048
+  noise_reduction: true
+  silence_trim: true
+  trim_top_db: 20
+
+# ── Features ─────────────────────────────────
+features:
+  use_mfcc: true
+  use_mfcc_delta: true
+  use_mfcc_delta2: true
+  use_mel: true
+  use_chroma: true
+  use_zcr: true
+  use_rms: true
+  use_spectral_contrast: true
+  use_tonnetz: true
+  feature_cache: "artifacts/features.pkl"
+
+# ── PCA ──────────────────────────────────────
+pca:
+  apply: true
+  n_components: 0.95     # keep 95% variance
+
+# ── Train / Test Split ───────────────────────
+split:
+  test_size: 0.2
+  val_size: 0.1
+  random_state: 42
+  stratify: true
+
+# ── Classical Models ─────────────────────────
+classical_models:
+  random_forest:
+    n_estimators: [100, 200, 300]
+    max_depth: [10, 20, null]
+    min_samples_split: [2, 5]
+    class_weight: "balanced"
+  svm:
+    C: [0.1, 1, 10, 100]
+    kernel: ["rbf", "linear"]
+    gamma: ["scale", "auto"]
+    class_weight: "balanced"
+  xgboost:
+    n_estimators: [100, 200, 300]
+    max_depth: [3, 5, 7]
+    learning_rate: [0.01, 0.05, 0.1]
+    subsample: [0.8, 1.0]
+
+# ── Deep Learning ────────────────────────────
+deep_learning:
+  epochs: 80
+  batch_size: 32
+  learning_rate: 0.001
+  patience: 15           # early stopping
+  dropout: 0.3
+  cnn:
+    filters: [32, 64, 128]
+    kernel_size: 3
+  lstm:
+    units: [128, 64]
+  cnn_lstm:
+    filters: [32, 64]
+    lstm_units: 128
+
+# ── Evaluation ───────────────────────────────
+evaluation:
+  metrics: ["accuracy", "f1_weighted", "f1_macro", "confusion_matrix", "roc_auc_ovr"]
+  save_plots: true
+  plots_dir: "artifacts/plots"
+
+# ── Paths ────────────────────────────────────
+paths:
+  models_dir: "models"
+  logs_dir: "logs"
+  artifacts_dir: "artifacts"

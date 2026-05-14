@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Speech Emotion Recognition | Rajneesh</title>
+  <style>
+    :root {
+      --bg: #050b18;
+      --surface: #0f172a;
+      --surface2: #1e293b;
+      --border: #334155;
+      --primary: #6366f1;
+      --accent: #06b6d4;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+    /* Canvas background */
+    #bg-canvas {
+      position: fixed; inset: 0; z-index: 0; opacity: 0.4;
+      pointer-events: none;
+    }
+    .content { position: relative; z-index: 1; }
+
+    /* NAV */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+      backdrop-filter: blur(12px);
+      background: rgba(5,11,24,0.7);
+      border-bottom: 1px solid rgba(99,102,241,0.15);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.55rem 1.3rem; border-radius: 8px;
+      font-size: 0.9rem; font-weight: 600; text-decoration: none;
+      transition: all 0.25s; cursor: pointer; border: none;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(99,102,241,0.4); }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+
+    /* HERO */
+    .hero {
+      min-height: 92vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 4rem 2rem;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.3);
+      color: #a5b4fc; padding: 0.35rem 1rem; border-radius: 999px;
+      font-size: 0.8rem; font-weight: 600; margin-bottom: 1.8rem;
+      letter-spacing: 0.05em;
+    }
+    .hero-title {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 900; line-height: 1.08;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 50%, #06b6d4 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 1.2rem;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--muted); max-width: 620px; line-height: 1.6;
+      margin-bottom: 2.5rem;
+    }
+    .hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    .hero-stats {
+      display: flex; gap: 3rem; margin-top: 4rem; flex-wrap: wrap; justify-content: center;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 2.5rem; font-weight: 900;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-label { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
+
+    /* SECTIONS */
+    section { padding: 5rem 2rem; max-width: 1100px; margin: 0 auto; }
+    .section-title {
+      font-size: 1.9rem; font-weight: 800; margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    .section-sub { color: var(--muted); margin-bottom: 3rem; font-size: 1rem; }
+
+    /* ARCH */
+    .arch-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.2rem;
+    }
+    .arch-step {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem; position: relative;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+    .arch-step:hover { border-color: var(--primary); transform: translateY(-4px); }
+    .arch-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.85rem; margin-bottom: 1rem;
+    }
+    .arch-step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .arch-step p { color: var(--muted); font-size: 0.85rem; line-height: 1.5; }
+
+    /* MODELS TABLE */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%; border-collapse: collapse;
+      background: var(--surface); border-radius: 14px; overflow: hidden;
+    }
+    thead { background: rgba(99,102,241,0.12); }
+    th, td { padding: 1rem 1.2rem; text-align: left; font-size: 0.9rem; }
+    th { color: #a5b4fc; font-weight: 700; font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    td { border-top: 1px solid var(--border); }
+    tr:hover td { background: rgba(99,102,241,0.05); }
+    .badge-model {
+      display: inline-block; padding: 0.2rem 0.6rem;
+      border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-dl { background: rgba(6,182,212,0.15); color: #67e8f9; }
+    .badge-ml { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+    .score-bar-wrap { display: flex; align-items: center; gap: 0.6rem; }
+    .score-bar-bg {
+      flex: 1; height: 6px; background: var(--surface2); border-radius: 99px; overflow: hidden;
+    }
+    .score-bar-fill { height: 100%; border-radius: 99px; }
+    .best-row td { color: #fff; font-weight: 700; }
+
+    /* FEATURES */
+    .feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+    .feat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+    .feat-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .feat-icon { font-size: 2rem; margin-bottom: 0.8rem; }
+    .feat-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .feat-card p { color: var(--muted); font-size: 0.85rem; line-height: 1.5; }
+
+    /* EMOTIONS */
+    .emotions-grid { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
+    .emo-chip {
+      display: flex; align-items: center; gap: 0.5rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 999px; padding: 0.5rem 1.2rem;
+      font-size: 0.9rem; font-weight: 600;
+      transition: all 0.2s;
+    }
+    .emo-chip:hover { border-color: var(--primary); background: rgba(99,102,241,0.1); }
+
+    /* FOOTER */
+    footer {
+      text-align: center; padding: 3rem 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 0.9rem;
+    }
+    footer a { color: var(--primary); text-decoration: none; }
+  </style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="content">
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">🎙️ SER</div>
+  <div class="nav-links">
+    <a href="#architecture">Architecture</a>
+    <a href="#models">Models</a>
+    <a href="#features">Features</a>
+    <a href="#setup">Setup</a>
+  </div>
+  <div style="display:flex;gap:0.6rem">
+    <a href="https://github.com/rajneeshbabu/speech-emotion-recognition" class="btn btn-outline" target="_blank">⭐ GitHub</a>
+    <a href="https://speech-emotion-recognition-rajneesh.streamlit.app" class="btn btn-primary" target="_blank">🚀 Live Demo</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="badge">🏆 Production-Quality ML Project</div>
+  <h1 class="hero-title">Speech Emotion<br>Recognition</h1>
+  <p class="hero-sub">
+    6 ML models detect 8 human emotions from speech — powered by MFCC, Mel Spectrogram,
+    CNN, Bi-LSTM and a CNN-LSTM Hybrid trained on the RAVDESS dataset.
+  </p>
+  <div class="hero-btns">
+    <a href="https://speech-emotion-recognition-rajneesh.streamlit.app" class="btn btn-primary" target="_blank">🚀 Try Live Demo</a>
+    <a href="https://github.com/rajneeshbabu/speech-emotion-recognition" class="btn btn-outline" target="_blank">📂 View Code</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">8</div><div class="stat-label">Emotions</div></div>
+    <div class="stat"><div class="stat-num">6</div><div class="stat-label">ML Models</div></div>
+    <div class="stat"><div class="stat-num">89.6%</div><div class="stat-label">Best Accuracy</div></div>
+    <div class="stat"><div class="stat-num">0.993</div><div class="stat-label">Best AUC</div></div>
+    <div class="stat"><div class="stat-num">1,440</div><div class="stat-label">Audio Samples</div></div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="section-title">🧠 Architecture</div>
+  <div class="section-sub">End-to-end MLOps pipeline from raw audio to emotion prediction</div>
+  <div class="arch-grid">
+    <div class="arch-step">
+      <div class="arch-num">1</div>
+      <h3>Data Ingestion</h3>
+      <p>Auto-downloads RAVDESS via Kaggle API. Parses 1,440 speech recordings, builds labelled catalogue.</p>
+    </div>
+    <div class="arch-step">
+      <div class="arch-num">2</div>
+      <h3>Preprocessing</h3>
+      <p>Silence trimming, spectral noise gating, resampling to 22 kHz. All configurable via YAML.</p>
+    </div>
+    <div class="arch-step">
+      <div class="arch-num">3</div>
+      <h3>Feature Extraction</h3>
+      <p>MFCC+δ+δ², Mel Spectrogram, Chroma, ZCR, RMS, Spectral Contrast, Tonnetz → ~315 flat features + 2-D tensors.</p>
+    </div>
+    <div class="arch-step">
+      <div class="arch-num">4</div>
+      <h3>Model Training</h3>
+      <p>RF, SVM, XGBoost with RandomizedSearchCV. CNN, Bi-LSTM, CNN-LSTM with early stopping + ReduceLR.</p>
+    </div>
+    <div class="arch-step">
+      <div class="arch-num">5</div>
+      <h3>Evaluation</h3>
+      <p>Accuracy, F1-Weighted, F1-Macro, ROC-AUC (OVR), confusion matrices, SHAP explainability.</p>
+    </div>
+    <div class="arch-step">
+      <div class="arch-num">6</div>
+      <h3>Deployment</h3>
+      <p>Streamlit app with waveform + Mel Spectrogram visualization, real-time prediction, model selector.</p>
+    </div>
+  </div>
+</section>
+
+<!-- EMOTIONS -->
+<section>
+  <div class="section-title">🎭 8 Emotions Detected</div>
+  <div class="section-sub">Trained on RAVDESS — Ryerson Audio-Visual Database of Emotional Speech and Song</div>
+  <div class="emotions-grid">
+    <div class="emo-chip">😐 Neutral</div>
+    <div class="emo-chip">😌 Calm</div>
+    <div class="emo-chip">😄 Happy</div>
+    <div class="emo-chip">😢 Sad</div>
+    <div class="emo-chip">😡 Angry</div>
+    <div class="emo-chip">😨 Fearful</div>
+    <div class="emo-chip">🤢 Disgust</div>
+    <div class="emo-chip">😲 Surprised</div>
+  </div>
+</section>
+
+<!-- MODELS TABLE -->
+<section id="models">
+  <div class="section-title">📊 Performance Results</div>
+  <div class="section-sub">All models evaluated on 20% test holdout. CNN-LSTM Hybrid achieves the best performance.</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Type</th>
+          <th>Accuracy</th>
+          <th>F1 Weighted</th>
+          <th>ROC-AUC</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="best-row">
+          <td>CNN (Best F1)</td>
+          <td><span class="badge-model badge-dl">Deep Learning</span></td>
+          <td>
+            <div class="score-bar-wrap">
+              89.58%
+              <div class="score-bar-bg"><div class="score-bar-fill" style="width:89.58%;background:linear-gradient(90deg,#6366f1,#06b6d4)"></div></div>
+            </div>
+          </td>
+          <td>0.8964</td>
+          <td>0.9894</td>
+        </tr>
+        <tr class="best-row">
+          <td>SVM (Best AUC)</td>
+          <td><span class="badge-model badge-ml">Classical ML</span></td>
+          <td>
+            <div class="score-bar-wrap">89.58%
+              <div class="score-bar-bg"><div class="score-bar-fill" style="width:89.58%;background:linear-gradient(90deg,#6366f1,#06b6d4)"></div></div>
+            </div>
+          </td>
+          <td>0.8949</td>
+          <td>0.9926</td>
+        </tr>
+        <tr>
+          <td>Bi-LSTM</td>
+          <td><span class="badge-model badge-dl">Deep Learning</span></td>
+          <td>
+            <div class="score-bar-wrap">85.76%
+              <div class="score-bar-bg"><div class="score-bar-fill" style="width:85.76%;background:#6366f1"></div></div>
+            </div>
+          </td>
+          <td>0.8579</td>
+          <td>0.9761</td>
+        </tr>
+        <tr>
+          <td>XGBoost</td>
+          <td><span class="badge-model badge-ml">Classical ML</span></td>
+          <td>
+            <div class="score-bar-wrap">85.76%
+              <div class="score-bar-bg"><div class="score-bar-fill" style="width:85.76%;background:#a5b4fc"></div></div>
+            </div>
+          </td>
+          <td>0.8573</td>
+          <td>0.9905</td>
+        </tr>
+        <tr>
+          <td>Random Forest</td>
+          <td><span class="badge-model badge-ml">Classical ML</span></td>
+          <td>
+            <div class="score-bar-wrap">84.90%
+              <div class="score-bar-bg"><div class="score-bar-fill" style="width:84.90%;background:#a5b4fc"></div></div>
+            </div>
+          </td>
+          <td>0.8480</td>
+          <td>0.9914</td>
+        </tr>
+        <tr>
+          <td>CNN-LSTM</td>
+          <td><span class="badge-model badge-dl">Deep Learning</span></td>
+          <td>
+            <div class="score-bar-wrap">81.42%
+              <div class="score-bar-bg"><div class="score-bar-fill" style="width:81.42%;background:#6366f1"></div></div>
+            </div>
+          </td>
+          <td>0.8111</td>
+          <td>0.9624</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-title">🔬 Feature Engineering</div>
+  <div class="section-sub">~315-dimensional feature vector extracted from each audio clip</div>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon">🎵</div>
+      <h3>MFCC + Δ + Δ²</h3>
+      <p>40 mel-frequency cepstral coefficients + first and second order derivatives. Mean and std pooled → 120 values.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌈</div>
+      <h3>Mel Spectrogram</h3>
+      <p>128-bin log-power mel spectrogram captures frequency distribution matching human auditory perception.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🎹</div>
+      <h3>Chroma Features</h3>
+      <p>12-dimensional pitch class profile — captures harmonic and tonal content of speech.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚡</div>
+      <h3>ZCR + RMS Energy</h3>
+      <p>Zero-crossing rate measures noisiness. RMS energy captures loudness and intensity patterns.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📐</div>
+      <h3>Spectral Contrast</h3>
+      <p>7 sub-band spectral valley-to-peak ratio — distinguishes different types of vocal sounds.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🎸</div>
+      <h3>Tonnetz</h3>
+      <p>6D tonal centroid features on harmonic audio — captures musical structure and tension.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SETUP -->
+<section id="setup">
+  <div class="section-title">⚡ Quick Start</div>
+  <div class="section-sub">Get the full pipeline running in under 10 minutes</div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:2rem;font-family:monospace;font-size:0.9rem;line-height:2;overflow-x:auto">
+    <div style="color:#94a3b8"># 1. Clone — models are already included</div>
+    <div style="color:#6ee7b7">git clone https://github.com/rajneeshbabu/speech-emotion-recognition.git</div>
+    <div style="color:#6ee7b7">cd speech-emotion-recognition</div>
+    <br>
+    <div style="color:#94a3b8"># 2. Create virtual environment and install</div>
+    <div style="color:#6ee7b7">python3 -m venv venv</div>
+    <div style="color:#6ee7b7">source venv/bin/activate</div>
+    <div style="color:#6ee7b7">pip install -r requirements.txt</div>
+    <br>
+    <div style="color:#94a3b8"># 3. Launch the app (no training needed)</div>
+    <div style="color:#6ee7b7">python -m streamlit run app.py</div>
+  </div>
+</section>
+
+<footer>
+  <p>Built with ❤️ by <strong><a href="https://github.com/rajneeshbabu">Rajneesh</a></strong> &nbsp;·&nbsp;
+  <a href="https://github.com/rajneeshbabu/speech-emotion-recognition">GitHub</a> &nbsp;·&nbsp;
+  Dataset: <a href="https://zenodo.org/record/1188976" target="_blank">RAVDESS</a></p>
+  <p style="margin-top:0.5rem;color:#475569">RAVDESS · TensorFlow · scikit-learn · librosa · Streamlit</p>
+</footer>
+
+</div>
+
+<script>
+// Animated canvas background — neural network nodes
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, nodes = [], animId;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+function createNodes(n = 55) {
+  nodes = Array.from({length: n}, () => ({
+    x: Math.random() * W, y: Math.random() * H,
+    vx: (Math.random() - 0.5) * 0.3,
+    vy: (Math.random() - 0.5) * 0.3,
+    r: 2 + Math.random() * 3,
+    pulse: Math.random() * Math.PI * 2,
+  }));
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  const t = Date.now() / 1000;
+
+  // Edges
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 160) {
+        const a = (1 - d / 160) * 0.22;
+        ctx.strokeStyle = `rgba(99,102,241,${a})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Nodes
+  nodes.forEach(n => {
+    n.x += n.vx; n.y += n.vy;
+    n.pulse += 0.02;
+    if (n.x < 0 || n.x > W) n.vx *= -1;
+    if (n.y < 0 || n.y > H) n.vy *= -1;
+    const glow = 0.5 + 0.3 * Math.sin(n.pulse);
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(99,102,241,${glow})`;
+    ctx.fill();
+  });
+
+  animId = requestAnimationFrame(draw);
+}
+
+resize();
+createNodes();
+draw();
+window.addEventListener('resize', () => { cancelAnimationFrame(animId); resize(); createNodes(); draw(); });
+</script>
+</body>
+</html>
