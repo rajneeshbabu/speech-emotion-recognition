@@ -10,7 +10,7 @@
 
 **Detects 8 emotions from speech audio using 6 ML models trained on the RAVDESS dataset.**
 
-[Live Demo](https://speech-emotion-recognition-rajneesh.streamlit.app) • [Dataset](https://zenodo.org/record/1188976)
+[Live Demo](https://speech-emotion-recognition-rajneesh.streamlit.app) • [Project Page](https://rajneeshbabu.github.io/speech-emotion-recognition/) • [Dataset](https://zenodo.org/record/1188976)
 
 </div>
 
