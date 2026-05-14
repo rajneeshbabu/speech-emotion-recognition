@@ -3,8 +3,8 @@
 <div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.13%2B-FF6F00?logo=tensorflow&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3%2B-F7931E?logo=scikit-learn&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-local%20only-FF6F00?logo=tensorflow&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-Live-FF4B4B?logo=streamlit&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -30,6 +30,9 @@
 CNN and SVM tied at 89.58% accuracy. CNN wins on F1-weighted, SVM wins on ROC-AUC.
 Results from `artifacts/model_comparison.json` — RAVDESS test set (288 samples, 20% holdout).
 
+> On Streamlit Cloud, SVM and XGBoost are used (no TensorFlow dependency).
+> On local, all 6 models including CNN, Bi-LSTM and CNN-LSTM are available.
+
 ---
 
 ## Emotions Detected
@@ -45,27 +48,25 @@ Raw Audio (.wav)
       |
       v
 Preprocessing
-  - Silence trimming (librosa)
+  - Silence trimming
   - Spectral noise gating
   - Resampling to 22050 Hz
       |
-      |-------------|
-      v             v
-Flat Features    2D Features
-  MFCC x3         MFCC (40 x 128)
-  Mel Spectrogram  Mel  (128 x 128)
-  Chroma
-  ZCR, RMS
+      |-------------------|
+      v                   v
+Flat Features (~315)   2D Features
+  MFCC + delta + delta2   MFCC (40 x 128)
+  Mel Spectrogram
+  Chroma, ZCR, RMS
   Spectral Contrast
   Tonnetz
-  (~315 dims)
-      |             |
-      v             v
-Classical ML    Deep Learning
-  PCA (95%)     CNN
-  RandomForest  Bi-LSTM
-  SVM           CNN-LSTM
-  XGBoost
+      |                   |
+      v                   v
+Classical ML          Deep Learning (local)
+  PCA (95%)             CNN
+  SVM                   Bi-LSTM
+  XGBoost               CNN-LSTM
+  Random Forest
 ```
 
 ---
@@ -73,7 +74,7 @@ Classical ML    Deep Learning
 ## Project Structure
 
 ```
-Speech Emotion Recognition/
+speech-emotion-recognition/
 ├── notebooks/
 │   └── SER_Training.ipynb      <- run this to train all 6 models
 ├── models/                     <- saved model files (committed to git)
@@ -89,7 +90,7 @@ Speech Emotion Recognition/
 │   └── plots/                  <- confusion matrices, ROC curves, SHAP
 ├── app.py                      <- Streamlit web app
 ├── requirements.txt
-├── packages.txt                <- system deps for Streamlit Cloud
+├── packages.txt                <- system deps for Streamlit Cloud (libsndfile1, ffmpeg)
 └── .gitignore
 ```
 
@@ -98,7 +99,6 @@ Speech Emotion Recognition/
 ## Run Locally
 
 ```bash
-# Clone and set up virtual environment
 git clone https://github.com/rajneeshbabu/speech-emotion-recognition.git
 cd speech-emotion-recognition
 
@@ -107,28 +107,42 @@ source venv/bin/activate
 
 pip install -r requirements.txt
 
-# Launch the app (models already included in the repo)
+# Models are already in the repo — no training needed
 python -m streamlit run app.py
 ```
 
 Open http://localhost:8501
 
+To use the deep learning models (CNN, Bi-LSTM, CNN-LSTM) locally:
+
+```bash
+pip install tensorflow        # macOS/Linux
+pip install tensorflow-macos  # Apple Silicon Mac
+```
+
 ---
 
 ## Train from Scratch
 
-If you want to retrain the models yourself:
+Data is downloaded automatically using **kagglehub** — no API key setup required.
 
 ```bash
-# Set Kaggle credentials
-export KAGGLE_USERNAME=your_username
-export KAGGLE_KEY=your_api_key
+pip install -r requirements.txt
+pip install tensorflow  # for deep learning models
 
-# Open the training notebook
 jupyter notebook notebooks/SER_Training.ipynb
 ```
 
-Run all cells. The notebook downloads RAVDESS (~3.5 GB), extracts features, trains all 6 models, and saves them to `models/`.
+Inside the notebook, Step 4 downloads the dataset in one line:
+
+```python
+import kagglehub
+path = kagglehub.dataset_download("uwrfkaggler/ravdess-emotional-speech-audio")
+```
+
+kagglehub handles authentication and caching automatically. The dataset (~3.5 GB) is downloaded once and cached at `~/.cache/kagglehub/`.
+
+Run all cells top to bottom. Training takes 20–40 minutes depending on your machine.
 
 ---
 
@@ -139,17 +153,18 @@ Run all cells. The notebook downloads RAVDESS (~3.5 GB), extracts features, trai
 3. Click **New app** → select your repo → set main file to `app.py`
 4. Click **Deploy**
 
-`packages.txt` handles the system dependencies (`libsndfile1`, `ffmpeg`) automatically.
+`packages.txt` handles `libsndfile1` and `ffmpeg` automatically on the cloud.
+TensorFlow is not required on Streamlit Cloud — SVM (89.58% accuracy) runs without it.
 
 ---
 
-## Features
+## Audio Features
 
 | Feature | Dimensions | Description |
 |---------|:----------:|-------------|
 | MFCC mean + std | 80 | Mel-frequency cepstral coefficients |
-| MFCC delta | 40 | First-order derivatives |
-| MFCC delta2 | 40 | Second-order derivatives |
+| MFCC delta | 40 | First-order derivatives (velocity) |
+| MFCC delta2 | 40 | Second-order derivatives (acceleration) |
 | Mel Spectrogram | 128 | Log-power mel spectrogram |
 | Chroma | 12 | Pitch class profile |
 | ZCR | 1 | Zero-crossing rate |

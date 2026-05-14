@@ -229,7 +229,7 @@
     <div class="arch-step">
       <div class="arch-num">1</div>
       <h3>Data Ingestion</h3>
-      <p>Auto-downloads RAVDESS via Kaggle API. Parses 1,440 speech recordings, builds labelled catalogue.</p>
+      <p>Auto-downloads RAVDESS via <strong>kagglehub</strong> in one line — no API key setup needed. Parses 1,440 speech recordings and builds a labelled catalogue.</p>
     </div>
     <div class="arch-step">
       <div class="arch-num">2</div>
@@ -403,20 +403,29 @@
 
 <!-- SETUP -->
 <section id="setup">
-  <div class="section-title">⚡ Quick Start</div>
-  <div class="section-sub">Get the full pipeline running in under 10 minutes</div>
+  <div class="section-title">Quick Start</div>
+  <div class="section-sub">Run the app in 3 steps — models are already included in the repo</div>
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:2rem;font-family:monospace;font-size:0.9rem;line-height:2;overflow-x:auto">
-    <div style="color:#94a3b8"># 1. Clone — models are already included</div>
+    <div style="color:#94a3b8"># 1. Clone the repo (models included, no training needed)</div>
     <div style="color:#6ee7b7">git clone https://github.com/rajneeshbabu/speech-emotion-recognition.git</div>
     <div style="color:#6ee7b7">cd speech-emotion-recognition</div>
     <br>
-    <div style="color:#94a3b8"># 2. Create virtual environment and install</div>
-    <div style="color:#6ee7b7">python3 -m venv venv</div>
-    <div style="color:#6ee7b7">source venv/bin/activate</div>
+    <div style="color:#94a3b8"># 2. Set up virtual environment and install dependencies</div>
+    <div style="color:#6ee7b7">python3 -m venv venv && source venv/bin/activate</div>
     <div style="color:#6ee7b7">pip install -r requirements.txt</div>
     <br>
-    <div style="color:#94a3b8"># 3. Launch the app (no training needed)</div>
+    <div style="color:#94a3b8"># 3. Launch the app</div>
     <div style="color:#6ee7b7">python -m streamlit run app.py</div>
+  </div>
+  <br>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:2rem;font-family:monospace;font-size:0.9rem;line-height:2;overflow-x:auto;margin-top:1rem">
+    <div style="color:#94a3b8"># To retrain from scratch — dataset downloads automatically via kagglehub</div>
+    <div style="color:#94a3b8"># No Kaggle API key needed</div>
+    <div style="color:#6ee7b7">pip install tensorflow   # for CNN / LSTM models</div>
+    <div style="color:#6ee7b7">jupyter notebook notebooks/SER_Training.ipynb</div>
+    <br>
+    <div style="color:#94a3b8"># Inside the notebook, data ingestion is just one line:</div>
+    <div style="color:#fde68a">path = kagglehub.dataset_download("uwrfkaggler/ravdess-emotional-speech-audio")</div>
   </div>
 </section>
 
@@ -424,7 +433,7 @@
   <p>Built with ❤️ by <strong><a href="https://github.com/rajneeshbabu">Rajneesh</a></strong> &nbsp;·&nbsp;
   <a href="https://github.com/rajneeshbabu/speech-emotion-recognition">GitHub</a> &nbsp;·&nbsp;
   Dataset: <a href="https://zenodo.org/record/1188976" target="_blank">RAVDESS</a></p>
-  <p style="margin-top:0.5rem;color:#475569">RAVDESS · TensorFlow · scikit-learn · librosa · Streamlit</p>
+  <p style="margin-top:0.5rem;color:#475569">RAVDESS · kagglehub · scikit-learn · librosa · Streamlit · TensorFlow (local)</p>
 </footer>
 
 </div>

@@ -4,15 +4,11 @@ soundfile
 audioread
 scikit-learn
 xgboost
-tensorflow
 numpy
 pandas
 matplotlib
 seaborn
 tqdm
-ipykernel
-ipywidgets
-jupyter
 shap
 pyyaml
 streamlit
