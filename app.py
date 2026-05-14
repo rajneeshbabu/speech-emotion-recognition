@@ -1,6 +1,6 @@
 """
 Streamlit Web App — Speech Emotion Recognition
-Run after training: python -m streamlit run app.py
+Run AFTER the notebook: python -m streamlit run app.py
 """
 
 import os, io, pickle, tempfile, warnings
@@ -80,29 +80,33 @@ EMOTION_COLOR = {
     "sad": "#60a5fa", "surprised": "#f0abfc",
 }
 
-# ── Label map ──────────────────────────────────────────────────────────────────
+
+# ── Load label map ─────────────────────────────────────────────────────────────
 @st.cache_resource
 def load_label_map():
-    lm_path   = os.path.join(PROCESSED_DIR, "label_map.pkl")
-    feat_path = os.path.join(PROCESSED_DIR, "features.pkl")
+    lm_path = os.path.join(PROCESSED_DIR, "label_map.pkl")
     if os.path.exists(lm_path):
         with open(lm_path, "rb") as f:
             d = pickle.load(f)
         return d["label_map"], d["inv_label_map"]
+
+    feat_path = os.path.join(PROCESSED_DIR, "features.pkl")
     if os.path.exists(feat_path):
         with open(feat_path, "rb") as f:
             d = pickle.load(f)
         lm = d["label_map"]
         return lm, {v: k for k, v in lm.items()}
+
     return None, None
+
 
 # ── Audio helpers ──────────────────────────────────────────────────────────────
 def load_audio(path):
     y, sr = librosa.load(path, sr=SAMPLE_RATE, duration=DURATION, mono=True)
-    y, _  = librosa.effects.trim(y, top_db=25)
-    S     = np.abs(librosa.stft(y))
-    nf    = np.mean(S[:, :10], axis=1, keepdims=True)
-    y     = librosa.istft(S * (S > nf * 1.5))
+    y, _ = librosa.effects.trim(y, top_db=25)
+    S = np.abs(librosa.stft(y))
+    nf = np.mean(S[:, :10], axis=1, keepdims=True)
+    y = librosa.istft(S * (S > nf * 1.5))
     return y, sr
 
 
@@ -114,8 +118,8 @@ def pad_or_truncate(arr, target):
 
 
 def extract_flat(path):
-    y, sr  = load_audio(path)
-    feats  = []
+    y, sr = load_audio(path)
+    feats = []
     mfcc   = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=N_MFCC, n_fft=N_FFT, hop_length=HOP_LENGTH)
     delta  = librosa.feature.delta(mfcc)
     delta2 = librosa.feature.delta(mfcc, order=2)
@@ -128,14 +132,14 @@ def extract_flat(path):
     feats.append(np.array([np.mean(librosa.feature.rms(y=y, hop_length=HOP_LENGTH))]))
     contrast = librosa.feature.spectral_contrast(y=y, sr=sr, n_fft=N_FFT, hop_length=HOP_LENGTH)
     feats.append(np.mean(contrast, axis=1))
-    tonnetz  = librosa.feature.tonnetz(y=librosa.effects.harmonic(y), sr=sr)
+    tonnetz = librosa.feature.tonnetz(y=librosa.effects.harmonic(y), sr=sr)
     feats.append(np.mean(tonnetz, axis=1))
     return np.concatenate(feats).astype(np.float32)
 
 
 def extract_mfcc_2d(path):
     y, sr = load_audio(path)
-    mfcc  = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=N_MFCC, n_fft=N_FFT, hop_length=HOP_LENGTH)
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=N_MFCC, n_fft=N_FFT, hop_length=HOP_LENGTH)
     return pad_or_truncate(mfcc, FIXED_FRAMES).astype(np.float32)
 
 
@@ -158,15 +162,12 @@ def load_model(name):
     return None, None
 
 
-def is_keras_model(name):
-    return name in ("cnn", "lstm", "cnn_lstm")
-
-
 # ── Prediction ─────────────────────────────────────────────────────────────────
 def predict(audio_bytes, model_key, inv_label_map):
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         tmp.write(audio_bytes)
         tmp_path = tmp.name
+
     try:
         model, mtype = load_model(model_key)
 
@@ -174,7 +175,7 @@ def predict(audio_bytes, model_key, inv_label_map):
             return None, "TensorFlow is not available in this environment. Please select SVM or XGBoost."
 
         if model is None:
-            return None, f"Model '{model_key}' not found."
+            return None, f"Model '{model_key}' not found. Run the notebook to train it."
 
         if mtype == "keras":
             mfcc_2d = extract_mfcc_2d(tmp_path)
@@ -184,7 +185,7 @@ def predict(audio_bytes, model_key, inv_label_map):
                 X = mfcc_2d[np.newaxis, ..., np.newaxis]
             proba = model.predict(X, verbose=0)[0]
         else:
-            flat  = extract_flat(tmp_path)
+            flat = extract_flat(tmp_path)
             proba = model.predict_proba(flat[np.newaxis])[0]
 
         idx        = int(np.argmax(proba))
@@ -199,16 +200,16 @@ def predict(audio_bytes, model_key, inv_label_map):
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### Speech Emotion Recognition")
+    st.markdown("### 🎙️ SER")
     st.markdown("---")
 
     if TF_AVAILABLE:
         model_options = {
-            "SVM (89.6% acc, best AUC)": "svm",
             "CNN (89.6% acc, best F1)":  "cnn",
+            "SVM (89.6% acc, best AUC)": "svm",
+            "Bi-LSTM":                   "lstm",
             "XGBoost":                   "xgboost",
             "Random Forest":             "random_forest",
-            "Bi-LSTM":                   "lstm",
             "CNN-LSTM":                  "cnn_lstm",
         }
     else:
@@ -218,35 +219,44 @@ with st.sidebar:
             "XGBoost":                   "xgboost",
             "Random Forest":             "random_forest",
         }
-        st.info("Running on cloud — deep learning models (CNN, LSTM) require local setup with TensorFlow.")
+        st.info("Running on cloud — deep learning models require local setup with TensorFlow.")
 
     selected_label = st.selectbox("Select Model", list(model_options.keys()))
     selected_key   = model_options[selected_label]
 
+    # Show model file availability
     st.markdown("---")
-    st.markdown("**Model Results (test set):**")
-    results = [
-        ("CNN",           "89.58%", "0.9894"),
-        ("SVM",           "89.58%", "0.9926"),
-        ("Bi-LSTM",       "85.76%", "0.9761"),
-        ("XGBoost",       "85.76%", "0.9905"),
-        ("Random Forest", "84.90%", "0.9914"),
-        ("CNN-LSTM",      "81.42%", "0.9624"),
-    ]
-    st.markdown("| Model | Acc | AUC |")
-    st.markdown("|---|---|---|")
-    for name, acc, auc in results:
-        st.markdown(f"| {name} | {acc} | {auc} |")
+    st.markdown("**Available Models:**")
+    all_models = {
+        "CNN (89.6%)":    "cnn",
+        "SVM (89.6%)":    "svm",
+        "Bi-LSTM":        "lstm",
+        "XGBoost":        "xgboost",
+        "Random Forest":  "random_forest",
+        "CNN-LSTM":       "cnn_lstm",
+    }
+    for label, key in all_models.items():
+        keras_p = os.path.join(MODELS_DIR, f"{key}.keras")
+        pkl_p   = os.path.join(MODELS_DIR, f"{key}.pkl")
+        exists  = os.path.exists(keras_p) or os.path.exists(pkl_p)
+        icon    = "✅" if exists else "⬜"
+        st.markdown(f"{icon} {label}")
 
     st.markdown("---")
-    st.markdown("**8 Emotions:** angry · calm · disgust · fearful · happy · neutral · sad · surprised")
-    st.markdown("**Dataset:** RAVDESS (1,440 clips, 24 actors)")
+    st.markdown("""
+**8 Emotions:**
+😡 Angry · 😌 Calm · 🤢 Disgust
+😨 Fearful · 😄 Happy · 😐 Neutral
+😢 Sad · 😲 Surprised
+
+**Dataset:** RAVDESS (1,440 clips)
+""")
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
-st.markdown('<div class="main-title">Speech Emotion Recognition</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">🎙️ Speech Emotion Recognition</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="subtitle">Upload a speech recording — the model detects the emotion in real time</div>',
+    '<div class="subtitle">Upload or record speech audio — AI detects the emotion in real time</div>',
     unsafe_allow_html=True,
 )
 
@@ -254,19 +264,34 @@ label_map, inv_label_map = load_label_map()
 
 if label_map is None:
     st.error(
-        "No trained models found. "
-        "Please run notebooks/SER_Training.ipynb first to train and save the models."
+        "⚠️ No trained models found. "
+        "Please run **`notebooks/SER_Training.ipynb`** first to train and save the models, "
+        "then relaunch this app."
     )
     st.stop()
 
-uploaded = st.file_uploader(
-    "Upload a speech audio file",
-    type=["wav", "mp3", "ogg", "flac"],
-    help="Best with 3 to 5 second clear speech clips",
-)
+# ── Input: Upload or Record ────────────────────────────────────────────────────
+input_tab1, input_tab2 = st.tabs(["📂 Upload Audio", "🎤 Record Audio"])
 
-if uploaded:
-    audio_bytes = uploaded.read()
+audio_bytes = None
+
+with input_tab1:
+    uploaded = st.file_uploader(
+        "Upload a speech audio file",
+        type=["wav", "mp3", "ogg", "flac"],
+        help="Works best with clear 3–5 second speech clips",
+    )
+    if uploaded:
+        audio_bytes = uploaded.read()
+
+with input_tab2:
+    st.markdown("Click the microphone button to start recording, click again to stop.")
+    recorded = st.audio_input("Record your voice")
+    if recorded:
+        audio_bytes = recorded.read()
+
+# ── Process audio if available ─────────────────────────────────────────────────
+if audio_bytes:
     st.audio(audio_bytes, format="audio/wav")
     st.markdown("---")
 
@@ -274,13 +299,13 @@ if uploaded:
 
     # ── Visualizations ──────────────────────────────────────────────────────────
     with col1:
-        st.subheader("Audio Visualizations")
+        st.subheader("📊 Audio Visualizations")
         try:
             y, sr = librosa.load(io.BytesIO(audio_bytes), sr=SAMPLE_RATE, mono=True)
 
-            tab1, tab2, tab3 = st.tabs(["Waveform", "Mel Spectrogram", "MFCC"])
+            tab1, tab2, tab3 = st.tabs(["🌊 Waveform", "🎨 Mel Spectrogram", "🎵 MFCC"])
 
-            def style_ax(ax, title):
+            def dark_ax(ax, title):
                 ax.set_facecolor("#1e293b")
                 ax.set_title(title, color="#e2e8f0")
                 ax.tick_params(colors="#94a3b8")
@@ -290,7 +315,7 @@ if uploaded:
             with tab1:
                 fig, ax = plt.subplots(figsize=(7, 3), facecolor="#0f172a")
                 librosa.display.waveshow(y, sr=sr, ax=ax, color="#6366f1", alpha=0.85)
-                style_ax(ax, "Waveform")
+                dark_ax(ax, "Waveform")
                 ax.set_xlabel("Time (s)", color="#94a3b8")
                 ax.set_ylabel("Amplitude", color="#94a3b8")
                 plt.tight_layout()
@@ -304,7 +329,7 @@ if uploaded:
                 img    = librosa.display.specshow(mel_db, sr=sr, x_axis="time",
                                                   y_axis="mel", ax=ax, cmap="magma")
                 fig.colorbar(img, ax=ax, format="%+2.0f dB")
-                style_ax(ax, "Mel Spectrogram")
+                dark_ax(ax, "Mel Spectrogram")
                 plt.tight_layout()
                 st.pyplot(fig, use_container_width=True)
                 plt.close()
@@ -315,13 +340,13 @@ if uploaded:
                 img  = librosa.display.specshow(mfcc, sr=sr, x_axis="time",
                                                 ax=ax, cmap="coolwarm")
                 fig.colorbar(img, ax=ax)
-                style_ax(ax, "MFCC (40 coefficients)")
+                dark_ax(ax, "MFCC (40 coefficients)")
                 plt.tight_layout()
                 st.pyplot(fig, use_container_width=True)
                 plt.close()
 
-            # Audio stats
-            st.markdown("### Audio Statistics")
+            # Stats
+            st.markdown("### 📈 Statistics")
             duration = len(y) / sr
             rms = float(np.mean(librosa.feature.rms(y=y)))
             zcr = float(np.mean(librosa.feature.zero_crossing_rate(y)))
@@ -335,19 +360,19 @@ if uploaded:
 
     # ── Prediction ──────────────────────────────────────────────────────────────
     with col2:
-        st.subheader("Emotion Prediction")
+        st.subheader("🤖 Emotion Prediction")
 
-        with st.spinner("Analyzing..."):
+        with st.spinner("Analyzing emotion…"):
             try:
                 result, error = predict(audio_bytes, selected_key, inv_label_map)
 
                 if error:
-                    st.warning(error)
+                    st.warning(f"⚠️ {error}")
                 elif result:
                     emotion    = result["emotion"]
                     confidence = result["confidence"]
                     proba_dict = result["probabilities"]
-                    emoji = EMOTION_EMOJI.get(emotion, "")
+                    emoji = EMOTION_EMOJI.get(emotion, "🎭")
                     color = EMOTION_COLOR.get(emotion, "#6366f1")
 
                     st.markdown(f"""
@@ -361,10 +386,11 @@ if uploaded:
                     </div>
                     """, unsafe_allow_html=True)
 
+                    # Probability bars
                     st.markdown("### Probability Distribution")
                     for emo, prob in sorted(proba_dict.items(), key=lambda x: -x[1]):
                         c_l, c_r = st.columns([3, 1])
-                        c_l.markdown(f"{EMOTION_EMOJI.get(emo, '')} **{emo.capitalize()}**")
+                        c_l.markdown(f"{EMOTION_EMOJI.get(emo, '🎭')} **{emo.capitalize()}**")
                         c_r.markdown(f"**{prob:.1%}**")
                         st.progress(float(prob))
 
@@ -379,7 +405,7 @@ if uploaded:
                     ax.set_facecolor("#0f172a")
                     wedges, texts, autotexts = ax.pie(
                         probs_,
-                        labels=[f"{EMOTION_EMOJI.get(e, '')} {e}" for e in emos_],
+                        labels=[f"{EMOTION_EMOJI.get(e, '🎭')} {e}" for e in emos_],
                         colors=colors_, autopct="%1.1f%%", startangle=140,
                     )
                     for t in texts:
@@ -394,12 +420,13 @@ if uploaded:
                 st.error(f"Prediction error: {e}")
 
 else:
+    # Landing
     st.markdown("---")
     st.markdown("""
     <div style="text-align:center;padding:3rem 1rem">
         <div style="font-size:5rem;margin-bottom:1rem">🎙️</div>
-        <h3 style="color:#94a3b8">Upload a speech recording to get started</h3>
-        <p style="color:#64748b">Supports WAV, MP3, OGG, FLAC<br>Best with 3 to 5 second clear speech clips</p>
+        <h3 style="color:#94a3b8">Upload or record a speech clip to get started</h3>
+        <p style="color:#64748b">Upload: WAV · MP3 · OGG · FLAC &nbsp;|&nbsp; Record: directly in your browser<br>Best with 3–5 second clear speech clips</p>
     </div>
     """, unsafe_allow_html=True)
 

@@ -11,4 +11,4 @@ seaborn
 tqdm
 shap
 pyyaml
-streamlit
+streamlit>=1.29.0
